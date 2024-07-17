@@ -1,0 +1,23 @@
+.swapCard {
+  &_card {
+    width: 100%;
+    padding: 12px 18px;
+    // background-color: $bg-color;
+    border-radius: 30px;
+    box-shadow: 0 4px 4px 0 rgb(0 0 0 / 25%);
+  }
+
+  &_amountInput {
+    position: relative;
+
+    button {
+      position: absolute;
+      top: 10px;
+      padding: 0 8px !important;
+      color: white;
+      // background-color: $text-dark;
+      // border-color: $text-dark;
+      // outline-color: $text-dark;
+    }
+  }
+}

@@ -1,0 +1,39 @@
+.priceImpact {
+  &--error {
+    span {
+      color: red !important;
+    }
+  }
+
+  &--warning {
+    & > span {
+      &:last-child {
+        color: orange !important;
+      }
+    }
+  }
+}
+
+.collapse {
+  :global {
+    .header {
+      &--expanded {
+        display: none;
+      }
+
+      &--collapsed {
+        display: flex;
+      }
+    }
+
+    .ant-collapse-item-active {
+      .header--expanded {
+        display: block;
+      }
+
+      .header--collapsed {
+        display: none;
+      }
+    }
+  }
+}
