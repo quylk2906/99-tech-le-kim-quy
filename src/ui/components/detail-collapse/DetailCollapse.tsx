@@ -1,4 +1,5 @@
 import {
+  CheckCircleFilled,
   CheckCircleOutlined,
   InfoCircleFilled,
   SwapOutlined,
@@ -41,7 +42,9 @@ const DetailCollapse: FC<Props> = (props) => {
     alert,
   } = props;
 
-  const infoIcon = <InfoCircleFilled css={{ marginLeft: 4 }} />;
+  const infoIcon = (
+    <InfoCircleFilled css={{ marginLeft: 4, color: '#425f6d' }} />
+  );
 
   const [swapped, setSwapped] = useState(false);
 
@@ -90,7 +93,7 @@ const DetailCollapse: FC<Props> = (props) => {
             </span>
 
             <Flex align={'center'} className={'header--collapsed'} gap={6}>
-              <CheckCircleOutlined color="green" />
+              <CheckCircleFilled css={{ color: 'green' }} />
               {info}
               <Button
                 size="small"

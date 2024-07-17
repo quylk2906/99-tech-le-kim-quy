@@ -3,6 +3,7 @@
     :global {
       .ant-drawer-body {
         padding-inline: 16px;
+        overflow: hidden;
       }
 
       .rc-virtual-list {
@@ -13,14 +14,11 @@
         cursor: pointer;
         padding-block: 8px;
         padding-inline: 16px;
+        gap: 16px;
 
         &:hover,
         &:active {
           background-color: #eef9ff;
-        }
-
-        & > div {
-          width: 100%;
         }
 
         span {

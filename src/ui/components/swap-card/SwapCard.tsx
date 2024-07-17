@@ -64,7 +64,7 @@ const SwapCard = ({
               {token ? (
                 <>
                   <img
-                    src={token.price}
+                    src={`src/assets/tokens/${token.currency}.svg`}
                     width={30}
                     height={30}
                     className="rounded"

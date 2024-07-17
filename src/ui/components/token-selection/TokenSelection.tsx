@@ -1,8 +1,10 @@
 import {
   Drawer,
   Flex,
+  Grid,
   Input,
   List,
+  Modal,
   Rate,
   Tabs,
   TabsProps,
@@ -17,8 +19,7 @@ import styles from './TokenSelection.module.scss';
 import { isEmpty } from 'lodash';
 import AppText from '../app-text/AppText';
 import { rounderNumber } from '../../../helpers/number';
-
-const { Title } = Typography;
+const { useBreakpoint } = Grid;
 const FAVORITE_ASSETS = 'favoriteAssets';
 
 type AssetListProps = {
@@ -31,12 +32,7 @@ type TokenSelectionProps = {
   open: boolean;
   onClose: () => void;
   assets: Asset[];
-  // favorites Asset[];
-  // allAssets: Asset[];
   onSelectToken: (val: Asset) => void;
-  // onAddToFavorite: (val: Asset) => void;
-  // onSelectToken: (val: Asset) => void;
-  // onAddToFavorite: (val: Asset) => void;
 };
 
 const AssetList: FC<AssetListProps> = ({
@@ -44,53 +40,49 @@ const AssetList: FC<AssetListProps> = ({
   onSelectToken,
   onAddToFavorite,
 }) => {
-  const ContainerHeight = useMemo(() => window.innerHeight - 280, []);
+  const ContainerHeight = useMemo(() => 440, []);
   return (
     <List>
       <VirtualList
         data={assets}
         height={ContainerHeight}
         itemHeight={56}
-        itemKey="address"
+        itemKey="currency"
       >
         {(el: Asset) => (
           <List.Item key={el.currency} onClick={() => onSelectToken(el)}>
             <Flex gap={12} align="center">
-              {/* <img
-                src={el.logo}
+              <img
+                src={`src/assets/tokens/${el.currency}.svg`}
                 width={32}
                 height={32}
-                className="rounded shrink-0"
-              /> */}
-              <Flex vertical className="grow-1" gap={2} css={{ width: 150 }}>
-                <AppText strong color="black" fontSize={16}>
-                  {el.currency}
-                </AppText>
-              </Flex>
-              <Flex vertical className="text-right">
-                <AppText strong color="black" fontSize={16}>
-                  ${rounderNumber(el.price)}
-                </AppText>
-                <AppText color="grey" fontSize={16}>
-                  $
-                  {el.price < 1 ? el.price.toFixed(4) : rounderNumber(el.price)}
-                </AppText>
-              </Flex>
-              <div
-                onClick={(ev) => {
-                  ev.stopPropagation();
-                }}
-              >
-                <Rate
-                  count={1}
-                  defaultValue={el.isFavorite ? 1 : 0}
-                  onChange={() => {
-                    onAddToFavorite(el);
-                  }}
-                  character={() => <StarFilled css={{ fontSize: 16 }} />}
-                />
-              </div>
+              />
+              <AppText strong color="black" fontSize={16}>
+                {el.currency}
+              </AppText>
             </Flex>
+            <Flex vertical css={{ textAlign: 'right', marginLeft: 'auto' }}>
+              <AppText strong color="black" fontSize={16}>
+                ${rounderNumber(el.price)}
+              </AppText>
+              <AppText color="grey" fontSize={16}>
+                ${el.price < 1 ? el.price.toFixed(4) : rounderNumber(el.price)}
+              </AppText>
+            </Flex>
+            <div
+              onClick={(ev) => {
+                ev.stopPropagation();
+              }}
+            >
+              <Rate
+                count={1}
+                value={el.isFavorite ? 1 : 0}
+                onChange={() => {
+                  onAddToFavorite(el);
+                }}
+                character={() => <StarFilled css={{ fontSize: 16 }} />}
+              />
+            </div>
           </List.Item>
         )}
       </VirtualList>
@@ -100,7 +92,9 @@ const AssetList: FC<AssetListProps> = ({
 
 const TokenSelection: FC<TokenSelectionProps> = (props) => {
   const { assets, open, onSelectToken, onClose } = props;
+  const { lg } = useBreakpoint();
   const [keyword, setKeyword] = useState('');
+
   const [favoriteAssets, setFavoriteAssets] = useState<string[]>(
     JSON.parse(localStorage.getItem(FAVORITE_ASSETS) ?? '[]')
   );
@@ -144,7 +138,7 @@ const TokenSelection: FC<TokenSelectionProps> = (props) => {
             el.isFavorite && `${el.currency}`.toLowerCase().includes(keyword)
         ),
       };
-    }, [assets, keyword]);
+    }, [assets, keyword, favoriteAssets]);
 
   const handleSearch = debounce((ev: React.ChangeEvent<HTMLInputElement>) => {
     setKeyword((ev.target.value ?? '').toLowerCase());
@@ -178,32 +172,51 @@ const TokenSelection: FC<TokenSelectionProps> = (props) => {
     [favorites, allAssets]
   );
 
-  return (
-    <Drawer
-      height="auto"
+  const modalContent = useMemo(
+    () => (
+      <>
+        <Flex vertical align={'center'} gap={16}>
+          <Input
+            size="large"
+            placeholder="Search token"
+            prefix={<SearchOutlined />}
+            onChange={handleSearch}
+            css={{
+              borderRadius: 24,
+              '.ant-input-prefix': {
+                marginInlineEnd: 10,
+              },
+            }}
+          />
+        </Flex>
+        <Tabs defaultActiveKey="1" items={items} />
+      </>
+    ),
+    [handleSearch, items]
+  );
+
+  return lg ? (
+    <Modal
+      centered
       open={open}
-      rootClassName={styles.tokenSelection_drawer}
       onClose={onClose}
+      onOk={onClose}
+      onCancel={onClose}
+      title="Select token"
+      rootClassName={styles.tokenSelection_drawer}
     >
-      <Title level={4} className="mb-1">
-        Select token
-      </Title>
-
-      <Flex vertical align={'center'} gap={16}>
-        <Input
-          css={{
-            borderRadius: 24,
-            '.ant-input-prefix': {
-              marginInlineEnd: 10,
-            },
-          }}
-          placeholder="Search assets or address"
-          prefix={<SearchOutlined />}
-          onChange={handleSearch}
-        />
-      </Flex>
-
-      <Tabs defaultActiveKey="1" items={items} />
+      <div css={{ height: 560 }}>{modalContent}</div>
+    </Modal>
+  ) : (
+    <Drawer
+      height={640}
+      placement="bottom"
+      open={open}
+      onClose={onClose}
+      title="Select token"
+      rootClassName={styles.tokenSelection_drawer}
+    >
+      {modalContent}
     </Drawer>
   );
 };

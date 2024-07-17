@@ -25,11 +25,11 @@ type Props = {
 };
 
 const Swap: FC<Props> = () => {
-  // const { query: routerQuery } = useRouter();
   const routerQuery = queryString.parse(window.location.search);
-  console.log(`⚡ ~~ routerQuery`, routerQuery);
   const [form] = Form.useForm<FormValue>();
+  // TODO: Use API hooks later
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [openDrawer, setOpenDrawer] = useState(false);
   const currentTokenInput = useRef<TransactionType | ''>('');
   const { origin, pathname } = useMemo(() => window.location, []);
@@ -79,19 +79,19 @@ const Swap: FC<Props> = () => {
         form.setFieldValue(['t', 'token'], token);
       }
     }
-  }, [routerQuery, tokens]);
+  }, [tokens]);
 
   const handleSubmit = async () => {
     // TODO: Call API transaction
     try {
-      setLoading(true);
+      setSubmitting(true);
       await form.validateFields();
       await swapToken();
       message.success('Swap token successful');
     } catch (error) {
       console.error(error);
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -113,9 +113,9 @@ const Swap: FC<Props> = () => {
 
   const isValidTransaction =
     sendData.amount &&
-    sendData.token?.address &&
+    sendData.token?.currency &&
     receiveData.amount &&
-    receiveData.token?.address;
+    receiveData.token?.currency;
 
   const handleSwap = () => {
     const { f, t } = form.getFieldsValue();
@@ -150,11 +150,11 @@ const Swap: FC<Props> = () => {
   const handleFieldsChange = (val: any) => {
     const fAmount = get(val, ['f', 'amount']);
     const tAmount = get(val, ['t', 'amount']);
-    if (!sendData.token?.address || !receiveData.token?.address) {
+    if (!sendData.token?.currency || !receiveData.token?.currency) {
       return;
     }
 
-    if (fAmount && sendData.token?.address && receiveData.token?.address) {
+    if (fAmount && sendData.token?.currency && receiveData.token?.currency) {
       // TODO: update logic convert receive amount
       form.setFieldValue(
         ['t', 'amount'],
@@ -162,8 +162,8 @@ const Swap: FC<Props> = () => {
       );
     } else if (
       tAmount &&
-      sendData.token?.address &&
-      receiveData.token?.address
+      sendData.token?.currency &&
+      receiveData.token?.currency
     ) {
       // TODO: update logic convert send amount
       form.setFieldValue(
@@ -174,80 +174,88 @@ const Swap: FC<Props> = () => {
   };
 
   return (
-    <Spin spinning={loading}>
-      <Flex className={styles.swap} vertical gap={18}>
-        <AppText center fontSize={32} color="primary" css={{ lineHeight: 1 }}>
-          Swap your token
-        </AppText>
-        <Flex justify={'flex-end'} gap={8}>
-          <Button
-            icon={<img src={SettingIcon} className="logo" alt="Vite logo" />}
-            onClick={() => setOpenSlippage(true)}
-          />
-          <Button icon={<ReloadOutlined />} onClick={handleReload} />
-        </Flex>
-        <Form
-          className={styles.swap_form}
-          form={form}
-          onValuesChange={handleFieldsChange}
-        >
-          <SwapCard
-            balance={fromBalance}
-            total={fromTotal}
-            title="You send"
-            type="f"
-            assets={tokens}
-            // onChange={setSendData}
-            onSelectToken={() => {
-              currentTokenInput.current = 'send';
-              setOpenDrawer(true);
-            }}
-          />
-          <Button
-            className={styles.swap_button}
-            icon={<img src={ArrowUpDown} className="logo" alt="Vite logo" />}
-            onClick={handleSwap}
-          />
-          <SwapCard
-            balance={toBalance}
-            total={toTotal}
-            title="You receive"
-            type="t"
-            assets={tokens}
-            // onChange={setReceiveData}
-            onSelectToken={() => {
-              currentTokenInput.current = 'receive';
-              setOpenDrawer(true);
-            }}
-          />
-        </Form>
+    <>
+      <div className={styles.swap}>
+        <div className={styles.swap_body}>
+          <AppText center fontSize={32} color="primary" css={{ lineHeight: 1 }}>
+            Swap your token
+          </AppText>
+          <Flex justify={'flex-end'} gap={8}>
+            <Button
+              icon={<img src={SettingIcon} className="logo" alt="Vite logo" />}
+              onClick={() => setOpenSlippage(true)}
+            />
+            <Button icon={<ReloadOutlined />} onClick={handleReload} />
+          </Flex>
+          <Spin spinning={loading}>
+            <Form
+              className={styles.swap_form}
+              form={form}
+              onValuesChange={handleFieldsChange}
+            >
+              <SwapCard
+                balance={fromBalance}
+                total={fromTotal}
+                title="You send"
+                type="f"
+                assets={tokens}
+                // onChange={setSendData}
+                onSelectToken={() => {
+                  currentTokenInput.current = 'send';
+                  setOpenDrawer(true);
+                }}
+              />
+              <Button
+                className={styles.swap_button}
+                icon={
+                  <img src={ArrowUpDown} className="logo" alt="Vite logo" />
+                }
+                onClick={handleSwap}
+              />
+              <SwapCard
+                balance={toBalance}
+                total={toTotal}
+                title="You receive"
+                type="t"
+                assets={tokens}
+                onSelectToken={() => {
+                  currentTokenInput.current = 'receive';
+                  setOpenDrawer(true);
+                }}
+              />
+            </Form>
+          </Spin>
 
-        {isValidTransaction && (
-          <DetailCollapse
-            sendToken={sendData.token?.symbol ?? ''}
-            sendPrice={sendData.amount ?? 0}
-            receiveToken={receiveData.token?.symbol ?? ''}
-            receivePrice={receiveData.amount ?? 0}
-            slippage={slippage}
-            // TODO: Update correct number
-            minimumAmount={999.999}
-            priceImpact={0.00999}
-            fee={[0.066665, 0.266665]}
-            // alert="error"
-            alert="warning"
-          />
-        )}
+          {isValidTransaction && (
+            <div css={{ width: '100%' }}>
+              <DetailCollapse
+                sendToken={sendData.token?.currency ?? ''}
+                sendPrice={sendData.amount ?? 0}
+                receiveToken={receiveData.token?.currency ?? ''}
+                receivePrice={receiveData.amount ?? 0}
+                slippage={slippage}
+                // TODO: Update correct number
+                minimumAmount={999.999}
+                priceImpact={0.00999}
+                fee={[0.066665, 0.266665]}
+                // alert="error"
+                alert="warning"
+              />
+            </div>
+          )}
 
-        <Button
-          block
-          type="primary"
-          onClick={handleSubmit}
-          size="large"
-          css={{ borderRadius: 24 }}
-        >
-          Send transaction
-        </Button>
-      </Flex>
+          <Button
+            block
+            loading={submitting}
+            type="primary"
+            onClick={handleSubmit}
+            size="large"
+            css={{ borderRadius: 24 }}
+          >
+            Send transaction
+          </Button>
+        </div>
+      </div>
 
       <TokenSelection
         open={openDrawer}
@@ -255,35 +263,6 @@ const Swap: FC<Props> = () => {
         onSelectToken={handleSelectToken}
         assets={tokens}
       />
-      {/* 
-      <Drawer
-        height="auto"
-        open={openDrawer}
-        rootClassName={styles.swap_drawer}
-        onClose={() => {
-          setOpenDrawer(false);
-        }}
-      >
-        <Title level={4} className="mb-1">
-          Select token
-        </Title>
-
-        <Flex vertical align={'center'} gap={16}>
-          <Input
-            css={{
-              borderRadius: 24,
-              '.ant-input-prefix': {
-                marginInlineEnd: 10,
-              },
-            }}
-            placeholder="Search assets or address"
-            prefix={<SearchOutlined />}
-            onChange={handleSearch}
-          />
-        </Flex>
-
-        <Tabs defaultActiveKey="1" items={items} />
-      </Drawer> */}
 
       <SlippagePopUp
         defaultValue={slippage}
@@ -296,7 +275,7 @@ const Swap: FC<Props> = () => {
           });
         }}
       />
-    </Spin>
+    </>
   );
 };
 

@@ -7,11 +7,11 @@ export type FormValue = {
   // tAmount: number;
   slippage: number;
   f: {
-    token: { symbol: string; price: number; address: string };
+    token: Asset;
     amount: number;
   };
   t: {
-    token: { symbol: string; price: number; address: string };
+    token: Asset;
     amount: number;
   };
 };

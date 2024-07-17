@@ -1,21 +1,30 @@
 /* stylelint-disable no-descending-specificity */
 .swap {
-  $bg-color: #1b1c25;
-
   height: 100vh;
-  padding: 12px;
-  padding-bottom: 100px;
-  max-width: 400px;
-  margin-inline: auto;
   display: flex;
   align-items: center;
-  justify-content: center;
+  background-color: #a1b4c9;
+
+  &_body {
+    border-radius: 20px;
+    padding: 36px;
+    max-width: 400px;
+    margin-inline: auto;
+    row-gap: 18px;
+    background-color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgb(224, 224, 224);
+  }
 
   &_form {
     display: flex;
     flex-direction: column;
     gap: 10px;
     align-items: center;
+    width: 100%;
 
     :global {
       .ant-form-item {
