@@ -1,0 +1,25 @@
+{
+  "name": "icon-repo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node validateImages.js",
+    "prepare": "husky install",
+    "precommit": "npm run test"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run precommit"
+    }
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "husky": "^8.0.3"
+  },
+  "dependencies": {
+    "image-size": "^1.0.2",
+    "jimp": "^0.22.8"
+  }
+}

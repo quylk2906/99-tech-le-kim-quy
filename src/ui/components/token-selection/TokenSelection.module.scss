@@ -1,0 +1,32 @@
+.tokenSelection {
+  &_drawer {
+    :global {
+      .ant-drawer-body {
+        padding-inline: 16px;
+      }
+
+      .rc-virtual-list {
+        margin-inline: -16px;
+      }
+
+      .ant-list-item {
+        cursor: pointer;
+        padding-block: 8px;
+        padding-inline: 16px;
+
+        &:hover,
+        &:active {
+          background-color: #eef9ff;
+        }
+
+        & > div {
+          width: 100%;
+        }
+
+        span {
+          line-height: 1.2;
+        }
+      }
+    }
+  }
+}

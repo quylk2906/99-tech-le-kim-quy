@@ -1,24 +1,11 @@
-import { ReloadOutlined, SearchOutlined } from '@ant-design/icons';
-import {
-  Button,
-  Drawer,
-  Flex,
-  Form,
-  Input,
-  message,
-  Tabs,
-  TabsProps,
-  Typography,
-} from 'antd';
+import { ReloadOutlined } from '@ant-design/icons';
+import { Button, Flex, Form, Spin, message } from 'antd';
 import isEmpty from 'lodash/isEmpty';
 import get from 'lodash/get';
-import debounce from 'lodash/debounce';
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Asset, FormValue, TransactionType } from './types';
 
 import queryString from 'query-string';
 import AppText from '../../components/app-text/AppText';
-import AssetList from '../../components/asset-list/AssetList';
 
 import SettingIcon from '../../../assets/svg-icons/settings.svg';
 import ArrowUpDown from '../../../assets/svg-icons/arrow_up_down.svg';
@@ -29,71 +16,30 @@ import DetailCollapse from '../../components/detail-collapse/DetailCollapse';
 import SlippagePopUp from '../../components/slippage-popup/SlippagePopUp';
 
 import styles from './Swap.module.scss';
-
-const { Title } = Typography;
+import { Asset, FormValue, TransactionType } from '../../../types';
+import TokenSelection from '../../components/token-selection/TokenSelection';
+import { getTokens, swapToken } from '../../../api/index';
 
 type Props = {
-  // onSubmit: () => void;
+  //
 };
 
-const FAVORITE_ASSETS = 'favoriteAssets';
-
 const Swap: FC<Props> = () => {
-  const fakeAssets: any[] = [];
   // const { query: routerQuery } = useRouter();
   const routerQuery = queryString.parse(window.location.search);
   console.log(`⚡ ~~ routerQuery`, routerQuery);
   const [form] = Form.useForm<FormValue>();
-  const [favoriteAssets, setFavoriteAssets] = useState<string[]>(
-    JSON.parse(localStorage.getItem(FAVORITE_ASSETS) ?? '[]')
-  );
-  const firstSubmitted = useRef(false);
-  const currentTokenInput = useRef<TransactionType | ''>('');
-  const [keyword, setKeyword] = useState('');
-  const { origin, pathname } = useMemo(() => window.location, []);
+  const [loading, setLoading] = useState(false);
   const [openDrawer, setOpenDrawer] = useState(false);
+  const currentTokenInput = useRef<TransactionType | ''>('');
+  const { origin, pathname } = useMemo(() => window.location, []);
   const [slippage, setSlippage] = useState(1);
+  const [tokens, setTokens] = useState<Asset[]>([]);
   const [openSlippage, setOpenSlippage] = useState(false);
   // Note: Send token + amount
   const sendData = Form.useWatch('f', form) ?? {};
   // Note: Receive token + amount
   const receiveData = Form.useWatch('t', form) ?? {};
-
-  const { allAssets, favorites }: { allAssets: Asset[]; favorites: Asset[] } =
-    useMemo(() => {
-      // TODO: Call api get list asset
-      // You can map more data if needed
-      const assets = fakeAssets.map((el) => ({
-        symbol: el.symbol,
-        name: el.display_name,
-        logo: el.image_url ?? '',
-        address: el.contract_address,
-        // TODO: Get user token balance
-        balance: 9999,
-        price: Number(el.dex_usd_price ?? 0),
-        isFavorite: favoriteAssets.includes(el.contract_address),
-      }));
-      if (!keyword) {
-        return {
-          allAssets: assets,
-          favorites: assets.filter((el) => el.isFavorite),
-        };
-      }
-      return {
-        allAssets: assets.filter((el) =>
-          `${el.name} ${el.symbol} ${el.address}`
-            .toLowerCase()
-            .includes(keyword)
-        ),
-        favorites: assets.filter(
-          (el) =>
-            el.isFavorite &&
-            `${el.name} ${el.symbol} ${el.address}`
-              .toLowerCase()
-              .includes(keyword)
-        ),
-      };
-    }, [fakeAssets, favoriteAssets, keyword]);
 
   const updateQuery = useCallback(
     (data: Record<string, any>) => {
@@ -104,51 +50,55 @@ const Swap: FC<Props> = () => {
     [sendData, receiveData]
   );
 
+  const fetchTokens = async () => {
+    try {
+      setLoading(true);
+      const rs = await getTokens();
+      setTokens(rs);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (!isEmpty(routerQuery) && !isEmpty(allAssets)) {
+    fetchTokens();
+  }, []);
+
+  // Hooks to update url
+  useEffect(() => {
+    if (!isEmpty(routerQuery) && !isEmpty(tokens)) {
       setSlippage(Number(routerQuery.slippage || '1'));
       if (routerQuery.ft) {
-        const token = allAssets.find((el) => el.symbol === `${routerQuery.ft}`);
+        const token = tokens.find((el) => el.currency === `${routerQuery.ft}`);
         form.setFieldValue(['f', 'token'], token);
       }
       if (routerQuery.tt) {
-        const token = allAssets.find((el) => el.symbol === `${routerQuery.tt}`);
+        const token = tokens.find((el) => el.currency === `${routerQuery.tt}`);
         form.setFieldValue(['t', 'token'], token);
       }
     }
-  }, [routerQuery, allAssets]);
+  }, [routerQuery, tokens]);
 
   const handleSubmit = async () => {
     // TODO: Call API transaction
     try {
-      firstSubmitted.current = true;
-      const data = await form.validateFields();
-      console.log(`⚡ ~~ handleSubmit ~~ data`, data);
+      setLoading(true);
+      await form.validateFields();
+      await swapToken();
+      message.success('Swap token successful');
     } catch (error) {
       console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
-
-  const handleAddToFav = useCallback(
-    (asset: Asset) => {
-      let _favoriteAssets = [...favoriteAssets];
-      if (isEmpty(_favoriteAssets)) {
-        _favoriteAssets = [asset.address];
-      } else if (_favoriteAssets.includes(asset.address)) {
-        _favoriteAssets = _favoriteAssets.filter((el) => el !== asset.address);
-      } else {
-        _favoriteAssets.push(asset.address);
-      }
-      localStorage.setItem(FAVORITE_ASSETS, JSON.stringify(_favoriteAssets));
-      setFavoriteAssets(_favoriteAssets);
-    },
-    [favoriteAssets]
-  );
 
   const { fromBalance, fromTotal } = useMemo(() => {
     return {
       // TODO: Get user token balance
-      fromBalance: 11111,
+      fromBalance: 45,
       fromTotal: +(sendData.amount ?? 0) * (sendData.token?.price ?? 0),
     };
   }, [sendData]);
@@ -156,7 +106,7 @@ const Swap: FC<Props> = () => {
   const { toBalance, toTotal } = useMemo(() => {
     return {
       // TODO: Get user token balance
-      toBalance: 33333,
+      toBalance: 12,
       toTotal: +(receiveData.amount ?? 0) * (receiveData.token?.price ?? 0),
     };
   }, [receiveData]);
@@ -166,12 +116,6 @@ const Swap: FC<Props> = () => {
     sendData.token?.address &&
     receiveData.amount &&
     receiveData.token?.address;
-
-  const differenceVal = 6.9;
-
-  const handleSearch = debounce((ev: React.ChangeEvent<HTMLInputElement>) => {
-    setKeyword((ev.target.value ?? '').toLowerCase());
-  }, 350);
 
   const handleSwap = () => {
     const { f, t } = form.getFieldsValue();
@@ -184,21 +128,18 @@ const Swap: FC<Props> = () => {
       if (currentTokenInput.current === 'send') {
         form.resetFields();
         form.setFieldValue(['f', 'token'], token);
-        updateQuery({ ft: token.symbol });
+        updateQuery({ ft: token.currency });
       } else {
         form.setFieldValue(['t', 'token'], token);
         form.resetFields([
           ['f', 'amount'],
           ['t', 'amount'],
         ]);
-        updateQuery({ tt: token.symbol });
-        if (firstSubmitted.current) {
-          form.validateFields();
-        }
+        updateQuery({ tt: token.currency });
       }
       setOpenDrawer(false);
     },
-    [currentTokenInput, firstSubmitted.current, updateQuery]
+    [currentTokenInput, updateQuery]
   );
 
   const handleReload = () => {
@@ -232,47 +173,11 @@ const Swap: FC<Props> = () => {
     }
   };
 
-  const items: TabsProps['items'] = useMemo(
-    () => [
-      {
-        key: '1',
-        label: 'Favorites',
-        children: (
-          <AssetList
-            assets={favorites}
-            onSelectToken={handleSelectToken}
-            onAddToFavorite={handleAddToFav}
-          />
-        ),
-      },
-      {
-        key: '2',
-        label: 'All assets',
-        children: (
-          <AssetList
-            assets={allAssets}
-            onSelectToken={handleSelectToken}
-            onAddToFavorite={handleAddToFav}
-          />
-        ),
-      },
-    ],
-    [
-      favorites,
-      allAssets,
-      sendData,
-      receiveData,
-      handleSelectToken,
-      handleAddToFav,
-    ]
-  );
-
   return (
-    <>
+    <Spin spinning={loading}>
       <Flex className={styles.swap} vertical gap={18}>
-        <AppText center fontSize={32} color="black" css={{ lineHeight: 1 }}>
-          Swap Jetton
-          <br /> at the best rate
+        <AppText center fontSize={32} color="primary" css={{ lineHeight: 1 }}>
+          Swap your token
         </AppText>
         <Flex justify={'flex-end'} gap={8}>
           <Button
@@ -291,7 +196,7 @@ const Swap: FC<Props> = () => {
             total={fromTotal}
             title="You send"
             type="f"
-            assets={allAssets}
+            assets={tokens}
             // onChange={setSendData}
             onSelectToken={() => {
               currentTokenInput.current = 'send';
@@ -308,9 +213,8 @@ const Swap: FC<Props> = () => {
             total={toTotal}
             title="You receive"
             type="t"
-            assets={allAssets}
+            assets={tokens}
             // onChange={setReceiveData}
-            differenceVal={differenceVal}
             onSelectToken={() => {
               currentTokenInput.current = 'receive';
               setOpenDrawer(true);
@@ -334,9 +238,24 @@ const Swap: FC<Props> = () => {
           />
         )}
 
-        <Button onClick={handleSubmit}>Send transaction</Button>
+        <Button
+          block
+          type="primary"
+          onClick={handleSubmit}
+          size="large"
+          css={{ borderRadius: 24 }}
+        >
+          Send transaction
+        </Button>
       </Flex>
 
+      <TokenSelection
+        open={openDrawer}
+        onClose={() => setOpenDrawer(false)}
+        onSelectToken={handleSelectToken}
+        assets={tokens}
+      />
+      {/* 
       <Drawer
         height="auto"
         open={openDrawer}
@@ -364,7 +283,7 @@ const Swap: FC<Props> = () => {
         </Flex>
 
         <Tabs defaultActiveKey="1" items={items} />
-      </Drawer>
+      </Drawer> */}
 
       <SlippagePopUp
         defaultValue={slippage}
@@ -377,7 +296,7 @@ const Swap: FC<Props> = () => {
           });
         }}
       />
-    </>
+    </Spin>
   );
 };
 

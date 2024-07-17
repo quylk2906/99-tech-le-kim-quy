@@ -1,17 +1,15 @@
 import { Button, Flex, Form, Input, Modal } from 'antd';
-import { Asset } from '../../containers/swap/types';
-import clsx from 'clsx';
 import AppText from '../app-text/AppText';
 
 import { formatCurrency } from '../../../helpers/number';
 import { DownOutlined } from '@ant-design/icons';
 
 import styles from './SwapCard.module.scss';
+import { Asset } from '../../../types';
 
 type SwapCardProps = {
   balance: number;
   total: number;
-  differenceVal?: number;
   title: string;
   type: 'f' | 't';
   assets: Asset[];
@@ -35,39 +33,16 @@ const SwapCard = ({
   type,
   balance,
   total,
-  differenceVal,
   // onChange,
   onSelectToken,
 }: SwapCardProps) => {
   const form = Form.useFormInstance();
   const token: Asset = form.getFieldValue([type, 'token']);
 
-  const handleShowDifferExplain = () => {
-    Modal.info({
-      okText: 'Got it, thanks',
-      title: 'What is Value difference?',
-      okButtonProps: { className: 'bg-blue--dark' },
-      content: (
-        <div>
-          <AppText color="black">
-            Value difference = (Received value - Paid value) / Paid value.
-          </AppText>
-          <br />
-          <br />
-          <AppText color="black">
-            When you trade a certain amount of tokens, it affects the liquidity
-            pool's depth. This, in turn, changes the overall availability and
-            price of the tokens, leading to noticeable differences in prices.
-          </AppText>
-        </div>
-      ),
-    });
-  };
-
   return (
-    <div className={styles.swapCard_card}>
+    <div className={styles.swapCard}>
       <Flex align={'center'} justify="space-between">
-        <AppText fontSize={24} color="grey">
+        <AppText fontSize={18} color="grey">
           {title}
         </AppText>
         <div>
@@ -75,8 +50,8 @@ const SwapCard = ({
         </div>
       </Flex>
 
-      <Flex gap={12} css={{ marginTop: -8 }}>
-        <div className={styles.swapCard_amountInput}>
+      <Flex gap={12}>
+        <div className={styles.swapCard_tokenInput}>
           <Form.Item
             css={{ width: 116 }}
             name={[type, 'token']}
@@ -89,12 +64,12 @@ const SwapCard = ({
               {token ? (
                 <>
                   <img
-                    src={token.logo}
+                    src={token.price}
                     width={30}
                     height={30}
                     className="rounded"
                   />
-                  <span>{token.symbol}</span>
+                  <span>{token.currency}</span>
                 </>
               ) : (
                 'Select token'
@@ -104,13 +79,7 @@ const SwapCard = ({
           </Button>
         </div>
         <Form.Item
-          css={{
-            marginBottom: -14,
-            '.ant-form-item-explain-error': {
-              textAlign: 'right',
-            },
-          }}
-          className="grow-1"
+          className={styles.swapCard_amountInput}
           name={[type, 'amount']}
           rules={[{ required: true, message: 'Please input' }]}
         >
@@ -125,17 +94,6 @@ const SwapCard = ({
       <Flex justify={'flex-end'}>
         <AppText color="grey">
           ${!total ? 0 : formatCurrency(Number(total.toFixed(6)))}{' '}
-          {differenceVal ? (
-            <span
-              onClick={handleShowDifferExplain}
-              className={clsx(
-                'cursor',
-                differenceVal > 0 ? 'text-green' : 'text-red'
-              )}
-            >
-              ({differenceVal}%)
-            </span>
-          ) : null}
         </AppText>
       </Flex>
     </div>
